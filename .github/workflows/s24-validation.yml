@@ -5,11 +5,11 @@ on:
 
 jobs:
   build-and-verify:
-    # Emulators require macOS runners on GitHub Actions to run smoothly
+    # macOS runners are required to run hardware-accelerated Android emulators
     runs-on: macos-latest
 
     steps:
-    # 1. Download the code from the repository that called this workflow
+    # 1. Download the code from the calling repository
     - name: Checkout Caller Code
       uses: actions/checkout@v4
 
@@ -21,19 +21,18 @@ jobs:
         distribution: 'temurin'
         cache: 'gradle'
 
-    # 3. Fix execution permissions
+    # 3. Fix execution permissions for the Gradle wrapper
     - name: Grant execute permission for gradlew
       run: chmod +x ./gradlew
 
-    # 4. Spin up a cloud emulator matching the S24 Ultra's OS profile
-    - name: Run S24 Ultra Target Emulator Verification
+    # 4. Boot the emulator and automatically run screen/UI tests
+    - name: Boot S24 Ultra Emulator & Run UI Tests
       uses: reactivecircus/android-emulator-runner@v2
       with:
-        api-level: 34          # Matches S24 Ultra's launch OS (Android 14)
+        api-level: 34          # Matches S24 Ultra launch OS (Android 14)
         target: google_apis
         arch: x86_64
-        profile: Galaxy Nexus  # Uses a generic phone profile layout
+        disable-animations: true # Speeds up UI interactions and prevents flaky tests
         script: |
-          echo "Emulator booted successfully!"
-          echo "Compiling and installing app to verify S24 compatibility..."
-          ./gradlew assembleDebug
+          echo "Emulator is live. Running instrumented screen tests..."
+          ./gradlew connectedCheck
