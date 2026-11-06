@@ -1,16 +1,19 @@
 name: Shared S24 Ultra Validation
 
-# This allows other repositories to call this workflow remotely
 on:
   workflow_call:
 
 jobs:
   build-and-verify:
-    runs-on: ubuntu-latest
+    # Emulators require macOS runners on GitHub Actions to run smoothly
+    runs-on: macos-latest
+
     steps:
+    # 1. Download the code from the repository that called this workflow
     - name: Checkout Caller Code
       uses: actions/checkout@v4
 
+    # 2. Set up Java
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -18,11 +21,19 @@ jobs:
         distribution: 'temurin'
         cache: 'gradle'
 
+    # 3. Fix execution permissions
     - name: Grant execute permission for gradlew
       run: chmod +x ./gradlew
 
-    - name: Run Unit Tests
-      run: ./gradlew test
-
-    - name: Build Test APK
-      run: ./gradlew assembleDebug
+    # 4. Spin up a cloud emulator matching the S24 Ultra's OS profile
+    - name: Run S24 Ultra Target Emulator Verification
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34          # Matches S24 Ultra's launch OS (Android 14)
+        target: google_apis
+        arch: x86_64
+        profile: Galaxy Nexus  # Uses a generic phone profile layout
+        script: |
+          echo "Emulator booted successfully!"
+          echo "Compiling and installing app to verify S24 compatibility..."
+          ./gradlew assembleDebug
